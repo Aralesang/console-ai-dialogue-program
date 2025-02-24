@@ -1,12 +1,6 @@
 /** 命令行对话模式主入口 */
 import DialogueEngine from "./dialogue_engine.ts";
 
-type CustomDelta = {
-    content?: string;
-    reasoning_content?: string;
-    role?: string;
-};
-
 const command = new DialogueEngine();
 
 async function promptUser() {
