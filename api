@@ -1,4 +1,4 @@
-官方: sk-263e7481976a4b0d900537819a23c243
+deepseek: sk-263e7481976a4b0d900537819a23c243
 
 腾讯: sk-nyfdCahqDRpUt3EULXn7O8Yr5GTAmakA9PlVVeQOEEhZsWrI
 https://api.lkeap.cloud.tencent.com/v1
@@ -7,3 +7,6 @@ deepseek-r1 deepseek-v3
 通义千问: sk-8af3cfddd72b48aaa81662d5772a4965
 https://dashscope.aliyuncs.com/compatible-mode/v1
 qwen-omni-turbo
+
+openrouter: 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
+https://openrouter.ai/api/v1
