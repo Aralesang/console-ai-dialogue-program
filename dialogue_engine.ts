@@ -234,4 +234,15 @@ export default class DialogueEngine {
             console.log("新建对话历史:", error);
         }
     }
+
+    public save_history(history_name: string) {
+        console.log("正在保存历史记录...");
+        try {
+            this.historyFileName = history_name;
+            Deno.writeTextFileSync(this.get_history_path(), JSON.stringify(this.history));
+            console.log("历史记录保存完成");
+        } catch (error) {
+            console.log("保存历史记录失败:", error);
+        }
+    }
 }
