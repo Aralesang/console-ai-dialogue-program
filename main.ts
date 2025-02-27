@@ -42,7 +42,7 @@ async function main() {
     console.log("欢迎使用命令行对话模式");
     //首先读取固有记忆
     await command.load_memory();
-    const prompt = "\n请输入对话名称\n如果已经存在,则会读取目标对话\n如果不存在,则会创建目标对话\n直接回车表示使用默认名称创建新对话\n请输入对话名称: ";
+    const prompt = "\n请输入对话名称\n如果已经存在,则会读取目标对话\n如果不存在,则会创建目标对话\n直接回车表示临时对话\n请输入对话名称: ";
     const input = promptSync(prompt);
     //如果当前对话轮次为0，且当前历史记录名不为空，读取历史记录
     if (input != "") {
