@@ -2,15 +2,15 @@ import { OpenAI } from "https://deno.land/x/openai@v4.69.0/mod.ts";
 
 // 配置中心
 const API_CONFIG = {
-    provider: "ollama",// "ollama",  // 可切换为 "openai" 或 "ollama"
+    provider: "openai",// "ollama",  // 可切换为 "openai" 或 "ollama"
     openai: {
         apiKey: "sk-nyfdCahqDRpUt3EULXn7O8Yr5GTAmakA9PlVVeQOEEhZsWrI",
         baseURL: "https://api.lkeap.cloud.tencent.com/v1",
-        model: "deepseek-r1"
+        model: "deepseek-r1" // 可用模型: deepseek-r1 deepseek-v3
     },
     ollama: {
         baseURL: "http://localhost:11434",  // Ollama默认地址
-        model: "deepseek-r1:latest"  // 可替换为其他本地模型 deepseek-r1:latest llama3.2:latest
+        model: "deepseek-r1:latest"  // 可用模型: deepseek-r1:latest llama3.2:latest
     },
     show_reasoning_content: true,// 是否显示推理内容,该配置仅限deepseek-r1模型时有效
     enable_multi_turn: true, // 是否启用多轮对话
@@ -56,11 +56,19 @@ export default class DialogueEngine {
     public get_history_path() {
         return "./history/" + this.historyFileName + ".json";
     }
+    /** 获取配置 */
+    public get_config() {
+        if (API_CONFIG.provider === "openai") {
+            return API_CONFIG.openai;
+        } else {
+            return API_CONFIG.ollama;
+        }
+    }
 
     public async sendRequest(input: string) {
         const message = this.buildMessage(input);
         //只有模型为deepseek-r1时才显示推理内容
-        if (API_CONFIG.show_reasoning_content && message.includes("deepseek-r1")) {
+        if (this.get_config().model.includes("deepseek-r1")) {
             console.log("\n" + "=".repeat(20) + "思考过程" + "=".repeat(20) + "\n");
             if (!API_CONFIG.show_reasoning_content) {
                 console.log("思考中...");
