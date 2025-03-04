@@ -1,29 +1,6 @@
 import { OpenAI } from "https://deno.land/x/openai@v4.69.0/mod.ts";
 import { uploadImage } from "./update_file.ts"
-
-// 配置中心
-const API_CONFIG = {
-    provider: "openai",// "ollama",  // 可切换为 "openai" 或 "ollama"
-    openai: {
-        apiKey: "sk-nyfdCahqDRpUt3EULXn7O8Yr5GTAmakA9PlVVeQOEEhZsWrI",
-        baseURL: "https://api.lkeap.cloud.tencent.com/v1",
-        model: "deepseek-r1" // 可用模型: deepseek-r1 deepseek-v3 qwen/qwen2.5-vl-72b-instruct:free
-    },
-    ollama: {
-        baseURL: "http://localhost:11434",  // Ollama默认地址
-        model: "deepseek-r1:latest"  // 可用模型: deepseek-r1:latest llama3.2:latest
-    },
-    img_model: { //视觉识别模型
-        apiKey: "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",
-        baseURL: "https://openrouter.ai/api/v1",
-        model: "qwen/qwen2.5-vl-72b-instruct:free"
-    },
-    show_reasoning_content: true,// 是否显示推理内容,该配置仅限deepseek-r1模型时有效
-    enable_multi_turn: true, // 是否启用多轮对话
-    enable_mermoryy: true, // 是否启用记忆
-    aoutor_loacl: false //自动切换本地推理
-};
-
+import { API_CONFIG } from "./config.ts";
 
 // 初始化OpenAI客户端（仅用于OpenAI模式）
 const openai = new OpenAI({
@@ -246,6 +223,8 @@ export default class DialogueEngine {
 
     /** 处理内容片段 */
     private processDeltaContent(delta: CustomDelta) {
+        //console.log(delta);
+        
         if (delta.reasoning_content) {
             this.handleReasoningContent(delta.reasoning_content);
         }
