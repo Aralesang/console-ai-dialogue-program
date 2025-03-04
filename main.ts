@@ -8,6 +8,7 @@ async function promptUser() {
     while (true) {
         const input = promptSync(prompt);
         const message = input.toLowerCase();
+        let image_path = "";
         if (message === '/exit') {
             console.log("Exiting...");
             break;
@@ -24,8 +25,55 @@ async function promptUser() {
             show_help();
             continue;
         }
-        await command.sendRequest(input);
+        if (message == '/config') {
+            console.log(command.get_api_config());
+            continue;
+        }
+        if (message.includes('/img')){
+            //分割内容
+            const contents = message.split(" ");
+            image_path = contents[1];
+        }
+        try {
+            await command.sendRequest(input, image_path);
+        } catch (error) {
+            console.error("发生错误:", error);
+            if (command.get_api_config().aoutor_loacl) {
+                console.log("无法与远程人工智能通信,正在启动本地推理");
+                command.set_provider("ollama");
+                console.log("当前指定的模型为:", command.get_config().model);
+                // 执行shell命令
+                const cmd = new Deno.Command("ollama", {
+                    args: ["run", command.get_config().model], // 命令参数
+                    stdin: "inherit", // 输入配置 (inherit | piped | null)
+                    stdout: "piped", // 输出配置
+                    stderr: "piped"
+                });
+
+                // 执行命令并获取结果
+                const { code, success, signal, stdout, stderr } = await cmd.output();
+
+                // 解码输出
+                console.log("Exit Code:", code);
+                console.log("Success:", success);
+                console.log("Signal:", signal);
+                console.log("Stdout:", new TextDecoder().decode(stdout));
+                console.log("Stderr:", new TextDecoder().decode(stderr));
+                if (code != 0) {
+                    console.log("本地推理启动失败,请检查ollama是否安装,或者模型名称是否正确");
+                    break;
+                } else {
+                    console.log("本地推理启动完成");
+                    console.log("切换模式为:ollama. 当前模型为:", command.get_config().model);
+                    await command.sendRequest(input, "");
+                }
+            }else{
+                return;
+            }
+        }
     }
+    console.log("用户交互界面已退出");
+
 }
 
 // Helper function to read input from the command line
@@ -75,6 +123,7 @@ function show_help() {
     console.log("1. /exit 退出");
     console.log("2. /show 显示历史记录");
     console.log("3. /save 保存当前对话,处于临时聊天模式时该命令会使得临时聊天变为永久聊天");
+    console.log("4. /img 该命令用于在对话中附加图片,需要两个参数 参数1: 图片路径 参数2: 要附带的文本,例如: /img ./img.jpg 请问你在图片上看到了什么?");
 }
 
 main();

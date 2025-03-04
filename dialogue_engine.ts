@@ -1,4 +1,5 @@
 import { OpenAI } from "https://deno.land/x/openai@v4.69.0/mod.ts";
+import { uploadImage } from "./update_file.ts"
 
 // 配置中心
 const API_CONFIG = {
@@ -6,15 +7,21 @@ const API_CONFIG = {
     openai: {
         apiKey: "sk-nyfdCahqDRpUt3EULXn7O8Yr5GTAmakA9PlVVeQOEEhZsWrI",
         baseURL: "https://api.lkeap.cloud.tencent.com/v1",
-        model: "deepseek-r1" // 可用模型: deepseek-r1 deepseek-v3
+        model: "deepseek-r1" // 可用模型: deepseek-r1 deepseek-v3 qwen/qwen2.5-vl-72b-instruct:free
     },
     ollama: {
         baseURL: "http://localhost:11434",  // Ollama默认地址
         model: "deepseek-r1:latest"  // 可用模型: deepseek-r1:latest llama3.2:latest
     },
+    img_model: { //视觉识别模型
+        apiKey: "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",
+        baseURL: "https://openrouter.ai/api/v1",
+        model: "qwen/qwen2.5-vl-72b-instruct:free"
+    },
     show_reasoning_content: true,// 是否显示推理内容,该配置仅限deepseek-r1模型时有效
     enable_multi_turn: true, // 是否启用多轮对话
     enable_mermoryy: true, // 是否启用记忆
+    aoutor_loacl: false //自动切换本地推理
 };
 
 
@@ -65,7 +72,16 @@ export default class DialogueEngine {
         }
     }
 
-    public async sendRequest(input: string) {
+    public get_api_config() {
+        return API_CONFIG;
+    }
+
+    /** 设置ai来源 */
+    public set_provider(provider: string) {
+        API_CONFIG.provider = provider;
+    }
+
+    public async sendRequest(input: string, image_path: string) {
         const message = this.buildMessage(input);
         //只有模型为deepseek-r1时才显示推理内容
         if (this.get_config().model.includes("deepseek-r1")) {
@@ -77,7 +93,11 @@ export default class DialogueEngine {
 
         // 根据配置选择服务商
         if (API_CONFIG.provider === "openai") {
-            await this.handleOpenAIRequest(message);
+            if (image_path == "") {
+                await this.handleOpenAIRequest(message);
+            } else {
+                await this.handleImageRequest(input, image_path);
+            }
         } else {
             await this.handleOllamaRequest(message);
         }
@@ -96,11 +116,47 @@ export default class DialogueEngine {
         return message + " user:" + input;
     }
 
+    /** 处理图像请求 */
+    public async handleImageRequest(input_message: string, img_path: string) {
+        openai.apiKey = API_CONFIG.img_model.apiKey;
+        openai.baseURL = API_CONFIG.img_model.baseURL;
+        const url = await uploadImage(img_path);
+        const completion = await openai.chat.completions.create({
+            model: API_CONFIG.img_model.model,
+            messages: [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": input_message
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": url
+                            }
+                        }
+                    ]
+                }
+            ],
+            stream: true,
+        });
+
+        for await (const chunk of completion) {
+            this.processOpenAIChunk(chunk);
+        }
+    }
+
     /** 处理OpenAI请求 */
     private async handleOpenAIRequest(message: string) {
+        openai.apiKey = API_CONFIG.openai.apiKey;
+        openai.baseURL = API_CONFIG.openai.baseURL;
         const completion = await openai.chat.completions.create({
             model: API_CONFIG.openai.model,
-            messages: [{ role: 'user', content: message }],
+            messages: [
+                { role: 'user', content: message }
+            ],
             stream: true,
         });
 
@@ -127,6 +183,8 @@ export default class DialogueEngine {
         const decoder = new TextDecoder();
         let buffer = "";
         console.log("\n" + "=".repeat(20) + "ollama的回复" + "=".repeat(20) + "\n");
+        /** 总览回复 */
+        let message_content = "";
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
@@ -139,12 +197,29 @@ export default class DialogueEngine {
                 if (!chunkStr.trim()) continue;
                 try {
                     const chunk: OllamaResponseChunk = JSON.parse(chunkStr);
-                    this.processOllamaChunk(chunk);
+                    if (chunk.done) {
+                        //分离思考和回答，思考内容从<tiank>开始到</tiank>结束
+                        const think_content_start = message_content.indexOf("<think>");
+                        const think_content_end = message_content.indexOf("</think>");
+                        if (think_content_start != -1 && think_content_end != -1) {
+                            message_content = message_content.substring(think_content_end + 8);
+                        }
+                        this.system_message += message_content;
+                        return;
+                    }
+
+                    const content = chunk.message?.content || "";
+                    if (content) {
+                        Deno.stdout.write(this.encoder.encode(content));
+                        message_content += content;
+                    }
+
                 } catch (e) {
                     console.error("JSON解析错误:", e);
                 }
             }
         }
+
     }
 
     /** 处理OpenAI数据块 */
@@ -159,11 +234,11 @@ export default class DialogueEngine {
     }
 
     /** 处理Ollama数据块 */
-    private processOllamaChunk(chunk: OllamaResponseChunk) {
+    private processOllamaChunk(chunk: OllamaResponseChunk, is_think: boolean) {
         if (chunk.done) return;
 
         const content = chunk.message?.content || "";
-        if (content) {
+        if (content && !is_think) {
             Deno.stdout.write(this.encoder.encode(content));
             this.system_message += content;
         }
