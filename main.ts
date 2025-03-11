@@ -36,7 +36,7 @@ async function promptUser() {
             if(contents.length == 3){
                 message = contents[2];
             }else{
-                message = "你看到了什么?";
+                message = "首先请告诉我你看到了什么?然后详细描述图片上的内容，如果图片的内容关联到了某些影视,文学,电子游戏等其他可能的内容,也请告知";
             }
         }
         try {
