@@ -34,11 +34,18 @@ export default class DialogueEngine {
     historyFileName = "";
     /** 系统消息缓存 */
     private system_message = "";
-
+    private exe_path = this.get_exe_path();
+    
+    public get_exe_path(){
+        // let path = Deno.execPath();
+        // //去除最后一个斜杠和后面一个文件名
+        // path = path.substring(0, path.lastIndexOf("/"));
+        return ".";
+    }
 
     /** 获取历史记录文件路径 */
     public get_history_path() {
-        return "./history/" + this.historyFileName + ".json";
+        return this.exe_path + "/history/" + this.historyFileName + ".json";
     }
     /** 获取配置 */
     public get_config() {
@@ -98,6 +105,8 @@ export default class DialogueEngine {
         openai.apiKey = API_CONFIG.img_model.apiKey;
         openai.baseURL = API_CONFIG.img_model.baseURL;
         const url = await uploadImage(img_path);
+        //console.log("获取到外链:", url);
+        
         const completion = await openai.chat.completions.create({
             model: API_CONFIG.img_model.model,
             messages: [
@@ -271,7 +280,7 @@ export default class DialogueEngine {
             return;
         }
         console.log("正在读取记忆...");
-        this.memory = await Deno.readTextFile("./memory.txt");
+        this.memory = await Deno.readTextFile(this.exe_path + "/memory.txt");
         console.log("记忆读取完成:", this.memory);
     }
 

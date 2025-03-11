@@ -7,7 +7,7 @@ async function promptUser() {
     const prompt = "\n用户: ";
     while (true) {
         const input = promptSync(prompt);
-        const message = input.toLowerCase();
+        let message = input.toLowerCase();
         let image_path = "";
         if (message === '/exit') {
             console.log("Exiting...");
@@ -33,9 +33,14 @@ async function promptUser() {
             //分割内容
             const contents = message.split(" ");
             image_path = contents[1];
+            if(contents.length == 3){
+                message = contents[2];
+            }else{
+                message = "你看到了什么?";
+            }
         }
         try {
-            await command.sendRequest(input, image_path);
+            await command.sendRequest(message, image_path);
         } catch (error) {
             console.error("发生错误:", error);
             if (command.get_api_config().aoutor_loacl) {

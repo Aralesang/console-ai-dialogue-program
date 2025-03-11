@@ -1,8 +1,6 @@
 // upload.ts
-const API_URL = "https://freeimage.host/api/1/upload";
-const API_KEY = "6d207e02198a847aa98d0a2a901485a5";
+const API_URL = "http://zm-99.com:8000/upload";
 //const IMG_PATH = "/Users/dengxiaolei/Documents/img1.jpg";
-
 export async function uploadImage(filePath: string) {
   // 1. 读取本地文件
   const fileContent = await Deno.readFile(filePath);
@@ -13,9 +11,9 @@ export async function uploadImage(filePath: string) {
 
   // 3. 构建请求体
   const body = new Uint8Array([
-    ...encodeMultipartField(boundary, "key", API_KEY),
-    ...encodeMultipartField(boundary, "action", "upload"),
-    ...encodeFilePart(boundary, "source", fileContent, fileName),
+    // ...encodeMultipartField(boundary, "key", API_KEY),
+    //...encodeMultipartField(boundary, "action", "upload"),
+    ...encodeFilePart(boundary, "file", fileContent, fileName),
     ...new TextEncoder().encode(`--${boundary}--\r\n`)
   ]);
 
@@ -23,15 +21,18 @@ export async function uploadImage(filePath: string) {
   const response = await fetch(API_URL, {
     method: "POST",
     headers: {
-      "Content-Type": `multipart/form-data; boundary=${boundary}`
+      "Content-Type": `multipart/form-data; boundary=${boundary}`,
+      "Accept": "application/json"
     },
     body
   });
 
   // 5. 处理响应
   const result = await response.json();
-  if (result.status_code === 200) {
-    return result.image.url;
+  if (result.status === 200) {
+    //console.log(result);
+    //console.log("上传成功:", result.url);
+    return result.url;
   } else {
     console.error("Upload failed:", result);
     return null;
@@ -65,5 +66,30 @@ function encodeFilePart(boundary: string, name: string, content: Uint8Array, fil
   ]);
 }
 
+//获取图片过期时间（当前时间加十分钟,格式：yyyy-MM-dd HH:mm:ss
+export function getExpiredAt(): string {
+  const currentTime = new Date();
+  const tenMinutesLater = new Date(currentTime.getTime() + 10 * 60 * 1000);
+  //年
+  const year = tenMinutesLater.getFullYear();
+  //月
+  const month = tenMinutesLater.getMonth() + 1;
+  //日
+  const date = tenMinutesLater.getDate();
+  //时
+  const hours = tenMinutesLater.getHours();
+  //分
+  const minutes = tenMinutesLater.getMinutes();
+  //秒
+  const seconds = tenMinutesLater.getSeconds();
+  const time = `${year}-${month}-${date} ${hours}:${minutes}:${seconds}`;
+  return time;
+}
+
+//console.log(getExpiredAt());
+
+
+
 // 使用示例（需要替换为实际文件路径）
-//uploadImage(IMG_PATH).catch(console.error);
+// let get = await uploadImage("./img1.jpg");
+// console.log(get);
